@@ -1,0 +1,22 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - ./localstack-init:/docker-entrypoint-initaws.d
+      - localstack-data:/var/lib/localstack
+    networks:
+      - localstack-network
+
+volumes:
+  localstack-data:
+
+networks:
+  localstack-network:
+    driver: bridge
