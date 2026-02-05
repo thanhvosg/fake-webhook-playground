@@ -1,0 +1,29 @@
+{
+  "eventType": "OutBoundSMS",
+  "timestamp": "2024-01-28T10:45:45Z",
+  "correlationId": "lead-987654321",
+  "leadId": 987654321,
+  "ticketId": 7777,
+  "companyId": 8888,
+  "customerId": null,
+  "recipient": {
+    "phone": "3031234567",
+    "firstName": "Jane",
+    "lastName": "Doe"
+  },
+  "message": {
+    "channel": "sms",
+    "text": "Hi Jane, thanks for reaching out. I can have a moving specialist call you today. What time works best and what is the best number to reach you?",
+    "language": "en-US"
+  },
+  "context": {
+    "eventType": "SmsReplyReceived",
+    "replyText": "Hi, yes. I am interested. Can someone call me today?",
+    "lead": {
+      "leadId": 987654321,
+      "title": "Moving Out-of-State",
+      "city": "Denver",
+      "state": "CO"
+    }
+  }
+}
