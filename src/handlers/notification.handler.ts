@@ -5,6 +5,8 @@ import { TemplateService } from "../services/template.service";
 import { OutboundSmsMessage } from "../types/outbound-sms.types";
 import { logger } from "../utils/logger";
 
+const MAX_RETRIES = 3;
+
 export class NotificationHandler {
   constructor(
     private channel: Channel,
@@ -13,10 +15,7 @@ export class NotificationHandler {
   ) {}
 
   async startConsuming(): Promise<void> {
-    await this.channel.consume(QUEUES.SMS_OUTBOUND, this.handleMessage.bind(this), {
-      noAck: false,
-    });
-
+    await this.channel.consume(QUEUES.SMS_OUTBOUND, this.handleMessage.bind(this), { noAck: false });
     logger.info("Started consuming from outbound SMS queue", { queue: QUEUES.SMS_OUTBOUND });
   }
 
@@ -24,9 +23,7 @@ export class NotificationHandler {
     if (!msg) return;
 
     try {
-      const content = JSON.parse(msg.content.toString()) as OutboundSmsMessage;
-      logger.info("Received outbound SMS message", { correlationId: content.correlationId });
-
+      const content = this.parseMessage(msg);
       const result = await this.notificationService.sendSMS({
         from: content.message.from,
         to: content.recipient.phone,
@@ -34,34 +31,44 @@ export class NotificationHandler {
         correlationId: content.correlationId,
       });
 
-      if (result.success) {
-        this.channel.ack(msg);
-      } else {
-        this.handleFailedMessage(msg, result.error || "Unknown error");
-      }
+      result.success ? this.ack(msg) : this.retryOrDiscard(msg, result.error);
+
     } catch (error) {
       logger.error("Error processing outbound message", { error: String(error) });
-      this.handleFailedMessage(msg, String(error));
+      this.retryOrDiscard(msg, String(error));
     }
   }
 
-  private handleFailedMessage(msg: ConsumeMessage, error: string): void {
-    const retryCount = (msg.properties.headers?.["x-retry-count"] as number) || 0;
+  private parseMessage(msg: ConsumeMessage): OutboundSmsMessage {
+    const content = JSON.parse(msg.content.toString()) as OutboundSmsMessage;
+    logger.info("Received outbound SMS message", { correlationId: content.correlationId });
+    return content;
+  }
 
-    if (retryCount < 3) {
-      this.channel.nack(msg, false, false);
-      this.channel.publish(
-        msg.fields.exchange,
-        msg.fields.routingKey,
-        msg.content,
-        {
-          headers: { "x-retry-count": retryCount + 1 },
-          persistent: true,
-        }
-      );
+  private ack(msg: ConsumeMessage): void {
+    this.channel.ack(msg);
+  }
+
+  private retryOrDiscard(msg: ConsumeMessage, error?: string): void {
+    const retryCount = this.getRetryCount(msg);
+
+    if (retryCount < MAX_RETRIES) {
+      this.requeue(msg, retryCount + 1);
     } else {
       logger.error("Message failed after max retries", { error });
-      this.channel.ack(msg);
+      this.ack(msg);
     }
+  }
+
+  private getRetryCount(msg: ConsumeMessage): number {
+    return (msg.properties.headers?.["x-retry-count"] as number) || 0;
+  }
+
+  private requeue(msg: ConsumeMessage, retryCount: number): void {
+    this.channel.nack(msg, false, false);
+    this.channel.publish(msg.fields.exchange, msg.fields.routingKey, msg.content, {
+      headers: { "x-retry-count": retryCount },
+      persistent: true,
+    });
   }
 }

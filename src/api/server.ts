@@ -1,10 +1,11 @@
 import express, { Application } from "express";
 import { createRoutes } from "./routes";
 import { errorMiddleware } from "./middleware/error.middleware";
+import { PublisherService } from "../services/publisher.service";
 import { env } from "../config/env";
 import { logger } from "../utils/logger";
 
-export function createServer(): Application {
+export function createServer(publisherService: PublisherService): Application {
   const app = express();
 
   app.use(express.json());
@@ -14,7 +15,7 @@ export function createServer(): Application {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  app.use(createRoutes());
+  app.use(createRoutes(publisherService));
   app.use(errorMiddleware);
 
   return app;

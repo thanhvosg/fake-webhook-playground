@@ -12,6 +12,16 @@ const envSchema = z.object({
   RABBITMQ_VHOST: z.string().default("/"),
   RABBITMQ_USE_SSL: z.enum(["true", "false"]).default("false"),
 
+  RABBITMQ_EXCHANGE_NAME: z.string().default("messages.exchange"),
+
+  RABBITMQ_QUEUE_SMS_OUTBOUND: z.string().default("sms_outbound.queue"),
+  RABBITMQ_QUEUE_SMS_INBOUND: z.string().default("sms_inbound.queue"),
+  RABBITMQ_QUEUE_LEAD_RECEIVE: z.string().default("lead_receive.queue"),
+
+  RABBITMQ_ROUTING_KEY_SMS_OUTBOUND: z.string().default("sms_outbound_message"),
+  RABBITMQ_ROUTING_KEY_SMS_INBOUND: z.string().default("sms_inbound_message"),
+  RABBITMQ_ROUTING_KEY_LEAD_RECEIVE: z.string().default("lead_receive"),
+
   EMAIL_PROVIDER: z.enum(["sendgrid", "mailgun", "ses"]).optional(),
   SENDGRID_API_KEY: z.string().optional(),
   SENDGRID_API_URL: z.string().default("https://api.sendgrid.com/v3/mail/send"),

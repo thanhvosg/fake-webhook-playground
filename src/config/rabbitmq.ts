@@ -1,24 +1,30 @@
-import amqp, { Connection, Channel } from "amqplib";
+import amqp, { ChannelModel, Channel } from "amqplib";
 import { env } from "./env";
 import { logger } from "../utils/logger";
 
-export const EXCHANGE_NAME = "messages.exchange";
+export const EXCHANGE_NAME = env.RABBITMQ_EXCHANGE_NAME;
 
 export const QUEUES = {
-  SMS_OUTBOUND: "sms_outbound.queue",
-  SMS_INBOUND: "sms_inbound.queue",
-  LEAD_RECEIVE: "lead_receive.queue",
+  SMS_OUTBOUND: env.RABBITMQ_QUEUE_SMS_OUTBOUND,
+  SMS_INBOUND: env.RABBITMQ_QUEUE_SMS_INBOUND,
+  LEAD_RECEIVE: env.RABBITMQ_QUEUE_LEAD_RECEIVE,
 } as const;
 
 export const ROUTING_KEYS = {
-  SMS_OUTBOUND: "sms_outbound_message",
-  SMS_INBOUND: "sms_inbound_message",
-  LEAD_RECEIVE: "lead_receive",
+  SMS_OUTBOUND: env.RABBITMQ_ROUTING_KEY_SMS_OUTBOUND,
+  SMS_INBOUND: env.RABBITMQ_ROUTING_KEY_SMS_INBOUND,
+  LEAD_RECEIVE: env.RABBITMQ_ROUTING_KEY_LEAD_RECEIVE,
 } as const;
 
 export interface RabbitMQConnection {
-  connection: Connection;
+  connection: ChannelModel;
   channel: Channel;
+}
+
+function buildConnectionUrl(): string {
+  const protocol = env.RABBITMQ_USE_SSL === "true" ? "amqps" : "amqp";
+  const { RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_VHOST } = env;
+  return `${protocol}://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}${RABBITMQ_VHOST}`;
 }
 
 async function checkQueueExists(channel: Channel, queue: string): Promise<boolean> {
@@ -30,27 +36,38 @@ async function checkQueueExists(channel: Channel, queue: string): Promise<boolea
   }
 }
 
-export async function connectRabbitMQ(): Promise<RabbitMQConnection> {
-  const protocol = env.RABBITMQ_USE_SSL === "true" ? "amqps" : "amqp";
-  const url = `${protocol}://${env.RABBITMQ_USERNAME}:${env.RABBITMQ_PASSWORD}@${env.RABBITMQ_HOST}:${env.RABBITMQ_PORT}${env.RABBITMQ_VHOST}`;
+async function setupQueue(channel: Channel, queue: string): Promise<void> {
+  const exists = await checkQueueExists(channel, queue);
+  if (exists) {
+    logger.info("Queue already exists, skipping creation", { queue });
+    return;
+  }
+  await channel.assertQueue(queue, { durable: true });
+}
 
-  const connection = await amqp.connect(url);
+async function bindQueues(channel: Channel): Promise<void> {
+  const bindings = [
+    { queue: QUEUES.SMS_OUTBOUND, key: ROUTING_KEYS.SMS_OUTBOUND },
+    { queue: QUEUES.SMS_INBOUND, key: ROUTING_KEYS.SMS_INBOUND },
+    { queue: QUEUES.LEAD_RECEIVE, key: ROUTING_KEYS.LEAD_RECEIVE },
+  ];
+
+  for (const { queue, key } of bindings) {
+    await channel.bindQueue(queue, EXCHANGE_NAME, key);
+  }
+}
+
+export async function connectRabbitMQ(): Promise<RabbitMQConnection> {
+  const connection = await amqp.connect(buildConnectionUrl());
   const channel = await connection.createChannel();
 
   await channel.assertExchange(EXCHANGE_NAME, "direct", { durable: true });
 
   for (const queue of Object.values(QUEUES)) {
-    const exists = await checkQueueExists(channel, queue);
-    if (!exists) {
-      await channel.assertQueue(queue, { durable: true });
-    } else {
-      logger.info("Queue already exists, skipping creation", { queue });
-    }
+    await setupQueue(channel, queue);
   }
 
-  await channel.bindQueue(QUEUES.SMS_OUTBOUND, EXCHANGE_NAME, ROUTING_KEYS.SMS_OUTBOUND);
-  await channel.bindQueue(QUEUES.SMS_INBOUND, EXCHANGE_NAME, ROUTING_KEYS.SMS_INBOUND);
-  await channel.bindQueue(QUEUES.LEAD_RECEIVE, EXCHANGE_NAME, ROUTING_KEYS.LEAD_RECEIVE);
+  await bindQueues(channel);
 
   logger.info("RabbitMQ connected and exchanges/queues configured");
 

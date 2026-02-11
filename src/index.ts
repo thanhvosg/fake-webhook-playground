@@ -1,12 +1,11 @@
 import "dotenv/config";
-import { connectRabbitMQ, QUEUES } from "./config/rabbitmq";
+import { connectRabbitMQ } from "./config/rabbitmq";
 import { createNotifmeSdk } from "./config/notifme";
 import { NotificationService } from "./services/notification.service";
 import { TemplateService } from "./services/template.service";
 import { PublisherService } from "./services/publisher.service";
 import { NotificationHandler } from "./handlers/notification.handler";
 import { createServer, startServer } from "./api/server";
-import { setWebhookDependencies } from "./api/routes";
 import { logger } from "./utils/logger";
 
 async function bootstrap(): Promise<void> {
@@ -25,9 +24,7 @@ async function bootstrap(): Promise<void> {
     );
     await notificationHandler.startConsuming();
 
-    setWebhookDependencies(publisherService);
-
-    const app = createServer();
+    const app = createServer(publisherService);
     startServer(app);
 
     logger.info("Communication service started successfully");
