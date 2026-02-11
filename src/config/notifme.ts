@@ -1,5 +1,6 @@
 import NotifmeSdk from "notifme-sdk";
 import { env } from "./env";
+import { logger } from "../utils/logger";
 
 export function createNotifmeSdk() {
   return new NotifmeSdk({
@@ -8,7 +9,7 @@ export function createNotifmeSdk() {
         providers: [{
           type: "custom",
           id: "telnyx",
-          send: async (request: { to: string; text: string }) => {
+          send: async (request: { from: string; to: string; text: string }) => {
             const response = await fetch(env.TELNYX_API_URL, {
               method: "POST",
               headers: {
@@ -16,7 +17,7 @@ export function createNotifmeSdk() {
                 "Authorization": `Bearer ${env.TELNYX_API_KEY}`,
               },
               body: JSON.stringify({
-                from: env.TELNYX_MESSAGING_PROFILE_ID,
+                from: request.from,
                 to: request.to,
                 text: request.text,
               }),
@@ -24,10 +25,12 @@ export function createNotifmeSdk() {
 
             if (!response.ok) {
               const error = await response.text();
+              logger.error("Telnyx API error response", { status: response.status, error });
               throw new Error(`Telnyx API error: ${error}`);
             }
 
             const data = await response.json() as { data: { id: string } };
+            logger.info("Telnyx API success response", { messageId: data.data.id, to: request.to });
             return { id: data.data.id };
           },
         }],

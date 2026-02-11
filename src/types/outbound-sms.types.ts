@@ -8,6 +8,7 @@ export interface OutboundSmsRecipient {
 
 export interface OutboundSmsMessageContent {
   channel: 'sms';
+  from: string;
   text: string;
   language: string;
 }

@@ -28,6 +28,7 @@ export class NotificationHandler {
       logger.info("Received outbound SMS message", { correlationId: content.correlationId });
 
       const result = await this.notificationService.sendSMS({
+        from: content.message.from,
         to: content.recipient.phone,
         text: content.message.text,
         correlationId: content.correlationId,

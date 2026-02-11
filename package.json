@@ -10,6 +10,7 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:integration": "jest --testMatch='**/integration/**/*.test.ts'",
+    "test:publish:outbound": "ts-node-dev --transpile-only tests/publish-outbound-test.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\""

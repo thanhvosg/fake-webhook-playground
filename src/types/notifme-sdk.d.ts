@@ -1,9 +1,17 @@
 declare module "notifme-sdk" {
   interface SendResult {
-    results: {
-      sms?: { id?: string };
-      email?: { id?: string };
+    status?: string;
+    channels?: {
+      sms?: {
+        id?: { id?: string };
+        providerId?: string;
+      };
+      email?: {
+        id?: { id?: string };
+        providerId?: string;
+      };
     };
+    [key: string]: unknown;
   }
 
   interface NotifmeSdkConfig {
@@ -12,7 +20,7 @@ declare module "notifme-sdk" {
         providers: Array<{
           type: string;
           id: string;
-          send: (request: { to: string; text: string }) => Promise<{ id?: string }>;
+          send: (request: { from: string; to: string; text: string }) => Promise<{ id?: string }>;
         }>;
       };
       email?: {
@@ -33,7 +41,7 @@ declare module "notifme-sdk" {
   class NotifmeSdk {
     constructor(config: NotifmeSdkConfig);
     send(request: {
-      sms?: { to: string; text: string };
+      sms?: { from: string; to: string; text: string };
       email?: { to: string; subject: string; html: string; text?: string };
     }): Promise<SendResult>;
   }

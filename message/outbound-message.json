@@ -13,6 +13,7 @@
   },
   "message": {
     "channel": "sms",
+    "from": "+18595551233",
     "text": "Hi Jane, thanks for reaching out. I can have a moving specialist call you today. What time works best and what is the best number to reach you?",
     "language": "en-US"
   },

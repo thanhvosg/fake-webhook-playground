@@ -20,7 +20,6 @@ const envSchema = z.object({
   SMS_PROVIDER: z.enum(["telnyx"]).default("telnyx"),
   TELNYX_API_KEY: z.string(),
   TELNYX_API_URL: z.string().default("https://api.telnyx.com/v2/messages"),
-  TELNYX_MESSAGING_PROFILE_ID: z.string(),
   TELNYX_PUBLIC_KEY: z.string(),
 
   WEBHOOK_SECRET: z.string(),
