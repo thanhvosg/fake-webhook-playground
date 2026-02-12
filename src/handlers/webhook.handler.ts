@@ -14,7 +14,21 @@ export class WebhookHandler {
 
       if (webhook.data.event_type === "message.received") {
         const inboundMessage = this.transformToInboundMessage(webhook.data.payload);
-        await this.publisherService.publishInboundSMS(inboundMessage);
+        const published = await this.publisherService.publishInboundSMS(inboundMessage);
+
+        if (!published) {
+          logger.error("Failed to publish inbound message to queue", {
+            correlationId: inboundMessage.correlationId,
+            from: inboundMessage.from.phone,
+          });
+          res.status(500).json({ error: "Failed to queue message" });
+          return;
+        }
+
+        logger.info("Successfully processed inbound SMS", {
+          correlationId: inboundMessage.correlationId,
+          from: inboundMessage.from.phone,
+        });
       }
 
       res.status(200).json({ success: true });

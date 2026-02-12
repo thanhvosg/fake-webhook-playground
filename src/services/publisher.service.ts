@@ -1,11 +1,12 @@
 import { Channel } from "amqplib";
 import { EXCHANGE_NAME, ROUTING_KEYS } from "../config/rabbitmq";
+import { InboundSmsMessage } from "../types/inbound-sms.types";
 import { logger } from "../utils/logger";
 
 export class PublisherService {
   constructor(private channel: Channel) {}
 
-  async publishInboundSMS(message: unknown): Promise<boolean> {
+  async publishInboundSMS(message: InboundSmsMessage): Promise<boolean> {
     try {
       const success = this.channel.publish(
         EXCHANGE_NAME,
