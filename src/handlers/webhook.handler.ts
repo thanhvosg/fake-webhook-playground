@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PublisherService } from "../services/publisher.service";
-import { TelnyxWebhook, TelnyxMessagePayload } from "../types/webhook.types";
+import { TelnyxWebhook } from "../types/webhook.types";
 import { InboundSmsMessage } from "../types/inbound-sms.types";
 import { logger } from "../utils/logger";
 
@@ -13,21 +13,21 @@ export class WebhookHandler {
       logger.info("Received Telnyx webhook", { eventType: webhook.data.event_type });
 
       if (webhook.data.event_type === "message.received") {
-        const inboundMessage = this.transformToInboundMessage(webhook.data.payload);
+        const inboundMessage = this.transformToInboundMessage(webhook);
         const published = await this.publisherService.publishInboundSMS(inboundMessage);
 
         if (!published) {
           logger.error("Failed to publish inbound message to queue", {
-            correlationId: inboundMessage.correlationId,
-            from: inboundMessage.from.phone,
+            id: inboundMessage.id,
+            from: inboundMessage.from,
           });
           res.status(500).json({ error: "Failed to queue message" });
           return;
         }
 
         logger.info("Successfully processed inbound SMS", {
-          correlationId: inboundMessage.correlationId,
-          from: inboundMessage.from.phone,
+          id: inboundMessage.id,
+          from: inboundMessage.from,
         });
       }
 
@@ -38,54 +38,22 @@ export class WebhookHandler {
     }
   }
 
-  private transformToInboundMessage(payload: TelnyxMessagePayload): InboundSmsMessage {
+  private transformToInboundMessage(webhook: TelnyxWebhook): InboundSmsMessage {
+    const { data } = webhook;
+    const payload = data.payload;
+
     return {
       eventType: "InboundSMS",
-      timestamp: new Date().toISOString(),
-      correlationId: payload.id,
-      leadId: 0,
-      ticketId: 0,
-      companyId: 0,
-      customerId: null,
+      timestamp: data.occurred_at,
+      id: `telnyx-${payload.id}`,
       reply: {
         direction: "inbound",
         text: payload.text,
-        receivedAt: payload.received_at || new Date().toISOString(),
+        receivedAt: payload.received_at || data.occurred_at,
         media: payload.media || [],
       },
-      from: {
-        phone: payload.from.phone_number,
-        firstName: "",
-        lastName: "",
-      },
-      to: payload.to.map(t => ({
-        phone: t.phone_number,
-        type: "telnyxNumber",
-      })),
-      telnyx: {
-        eventType: payload.direction === "inbound" ? "message.received" : "message.sent",
-        webhookId: payload.id,
-        messageId: payload.id,
-        recordType: payload.record_type,
-        messagingProfileId: payload.messaging_profile_id,
-        organizationId: payload.organization_id,
-        encoding: payload.encoding,
-        parts: payload.parts,
-        tags: payload.tags,
-      },
-      context: {
-        eventType: "LeadCreated",
-        title: "",
-        description: "",
-        location: {
-          street: "",
-          city: "",
-          state: "",
-          postalCode: "",
-          country: "",
-          unit: null,
-        },
-      },
+      from: payload.from.phone_number,
+      to: payload.to[0].phone_number,
     };
   }
 }

@@ -1,53 +1,13 @@
 {
   "eventType": "InboundSMS",
   "timestamp": "2024-01-28T10:45:32Z",
-  "correlationId": "lead-987654321",
-  "leadId": 987654321,
-  "ticketId": 7777,
-  "companyId": 8888,
-  "customerId": null,
+  "id": "telnyx-3f8d4e2a-9f67-4f9a-8d45-4b9fb2e33d91",
   "reply": {
     "direction": "inbound",
     "text": "Hi, yes. I am interested. Can someone call me today?",
     "receivedAt": "2024-01-28T10:45:31Z",
     "media": []
   },
-  "from": {
-    "phone": "3031234567",
-    "firstName": "Jane",
-    "lastName": "Doe"
-  },
-  "to": [
-    {
-      "phone": "+13035550123",
-      "type": "telnyxNumber"
-    }
-  ],
-  "telnyx": {
-    "eventType": "message.received",
-    "webhookId": "c2c6b8ab-4d9a-4db0-9f08-6d1c7dfb9c12",
-    "messageId": "3f8d4e2a-9f67-4f9a-8d45-4b9fb2e33d91",
-    "recordType": "message",
-    "messagingProfileId": "40123456-7a5b-4cb7-8f90-1d1f7b2e1c5b",
-    "organizationId": "9f2d11e1-75e5-4c1d-9a30-2c7c6fd6d4d9",
-    "encoding": "GSM-7",
-    "parts": 1,
-    "tags": [
-      "lead",
-      "reply"
-    ]
-  },
-  "context": {
-    "eventType": "LeadCreated",
-    "title": "Moving Out-of-State",
-    "description": "I am moving my family of 4 to a new state. We have a 3 bedroom house worth of stuff and looking for more information about your moving services.",
-    "location": {
-      "street": "123 Main Street",
-      "city": "Denver",
-      "state": "CO",
-      "postalCode": "80210",
-      "country": "US",
-      "unit": null
-    }
-  }
+  "from": "3031234567",
+  "to": "+13035550123"
 }
