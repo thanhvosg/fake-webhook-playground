@@ -1,0 +1,43 @@
+name: Deploy to Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to deploy (tag, branch, or commit SHA). Leave empty for latest main'
+        required: false
+        type: string
+        default: ''
+
+run-name: "Deploy to Demo ${{ inputs.ref || 'latest' }} (#${{ github.run_number }})"
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, demo]
+    environment: demo
+    env:
+      DEPLOY_REF: ${{ inputs.ref || 'origin/main' }}
+      BUILD_NUMBER: ${{ github.run_number }}
+
+    steps:
+      - name: Deploy Communication Service
+        working-directory: /opt/scripts/communication-service
+        run: |
+          set -euo pipefail
+
+          git fetch origin
+          git checkout $DEPLOY_REF
+
+          npm install
+          npm run build
+
+          if pm2 describe demo-communication-service > /dev/null 2>&1; then
+            echo "Found service 'demo-communication-service'. Restarting..."
+            pm2 restart demo-communication-service
+          else
+            echo "Service 'demo-communication-service' not found. Starting new service..."
+            pm2 start dist/index.js --name demo-communication-service
+          fi
+
+      - name: Display PM2 status
+        run: pm2 ls
